@@ -28,14 +28,9 @@
 #include <sys/param.h>
 #include <fstream>
 
-#if USE_SDL2
 #include "SDL2/SDL.h"
-#else
-#include "SDL/SDL.h"
-#endif
 
 #ifdef __linux__
-#include <FL/fl_ask.H>
 #include "binreloc.h"
 
 #include <sys/types.h>

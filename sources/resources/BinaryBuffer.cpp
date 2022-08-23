@@ -27,13 +27,8 @@
 #include "math/CRC.h"
 
 // Include SDL Endian code
-#if USE_SDL2
 #include "SDL2/SDL_stdinc.h"
 #include "SDL2/SDL_endian.h"
-#else
-#include "SDL/SDL_endian.h"
-#endif
-#include <errno.h>
 
 #ifdef WIN32
 	#define ZLIB_WINAPI
@@ -448,7 +443,7 @@ namespace hpl {
 			size_t lTotalDataSize = mlDataPos - lStartPos - 4;
 			size_t lChunk = lTotalDataSize >> DATA_CHUNK_BITS;
 			
-			int *pSizeDataPtr = (int*)mvDataChunks[lChunk][lTotalDataSize - (lChunk << DATA_CHUNK_BITS)];
+			int *pSizeDataPtr = reinterpret_cast<int*>(mvDataChunks[lChunk][lTotalDataSize - (lChunk << DATA_CHUNK_BITS)]);
 			*pSizeDataPtr = lTotalDataSize;
 		}
 

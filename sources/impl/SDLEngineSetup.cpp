@@ -43,16 +43,12 @@
 	#include "impl/LowLevelHapticHaptX.h"
 #endif
 
-#if USE_SDL2
-#include "SDL2/SDL.h"
-#include "SDL2/SDL_syswm.h"
-#else
-#include "SDL/SDL.h"
-#include "SDL/SDL_syswm.h"
-#endif
 #ifdef WIN32
 #include "Windows.h"
 #include "Dbt.h"
+#else
+#include "SDL2/SDL.h"
+#include "SDL2/SDL_syswm.h"
 #endif
 
 namespace hpl {

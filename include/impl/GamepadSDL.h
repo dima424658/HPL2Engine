@@ -20,15 +20,13 @@
 #ifndef HPL_GAMEPAD_SDL_H
 #define HPL_GAMEPAD_SDL_H
 
-#if !USE_SDL2
-
 #include <vector>
 #include <list>
 #include "system/SystemTypes.h"
 #include "input/Gamepad.h"
 //#include "input/InputTypes.h"
 
-#include "SDL/SDL.h"
+#include "SDL2/SDL.h"
 
 namespace hpl {
 
@@ -85,13 +83,16 @@ namespace hpl {
 		//void AddKeyToList(int alSDLMod, eKey aKey, int alUnicode, std::list<cKeyPress>& alstKeys);
 
 		tString msGamepadName;
-
+		
 		std::vector<float>				mvAxisArray;
 		std::vector<eGamepadAxisRange>	mvAxisRange;
 		std::vector<bool>				mvButtonArray;
+
+#ifdef WIN32
+		std::vector<float>				mvRemappedAxisArray;
 		std::vector<eGamepadHatState>	mvHatArray;
-		std::vector<cVector2l>			mvBallAbsPosArray;
-		std::vector<cVector2l>			mvBallRelPosArray;
+		std::vector<bool>				mvRemappedButtonArray;
+#endif
 
 		std::list<cGamepadInputData> mlstInputUpdates;
 
@@ -100,9 +101,8 @@ namespace hpl {
 
 		std::list<cGamepadInputData> mlstAxisChanges;
 
-		std::list<cGamepadInputData> mlstHatStateChanges;
-
-		SDL_Joystick		*mpHandle;
+		SDL_GameController	*mpHandle;
+        SDL_JoystickID      mlInstance;
 		cLowLevelInputSDL	*mpLowLevelInputSDL;
 
 		static float mfInvAxisMax;
@@ -110,7 +110,5 @@ namespace hpl {
 	};
 
 };
-
-#endif // USE_SDL2
 
 #endif // HPL_GAMEPAD_SDL_H

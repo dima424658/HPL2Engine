@@ -22,20 +22,14 @@
 #include "impl/MouseSDL.h"
 #include "impl/KeyboardSDL.h"
 #include "impl/GamepadSDL.h"
-#include "impl/GamepadSDL2.h"
 
 #include "system/LowLevelSystem.h"
 #include "graphics/LowLevelGraphics.h"
 
 #include "engine/Engine.h"
 
-#if USE_SDL2
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
-#else
-#include "SDL/SDL.h"
-#include "SDL/SDL_syswm.h"
-#endif
 
 #if defined WIN32 && !SDL_VERSION_ATLEAST(2,0,0)
 #include <Windows.h>
@@ -257,8 +251,6 @@ namespace hpl {
 		{
 			return NULL;
 		}
-#elif USE_SDL2
-		return hplNew( cGamepadSDL2, (this, alIndex) );
 #else
 		return hplNew( cGamepadSDL, (this, alIndex) );
 #endif

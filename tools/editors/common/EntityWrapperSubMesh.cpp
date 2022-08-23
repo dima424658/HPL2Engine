@@ -23,7 +23,7 @@
 
 #include "EditorBaseClasses.h"
 #include "EditorWindowViewport.h"
-#include "../ModelEditor/ModelEditorWorld.h"
+#include "../modeleditor/ModelEditorWorld.h"
 
 #include "EditorHelper.h"
 

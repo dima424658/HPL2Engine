@@ -36,7 +36,7 @@ class cEditorEditModeSelect;
 class cEntityWrapperBody;
 class iEntityWrapperJoint;
 
-enum eEditorJointAttachedBody;
+//enum eEditorJointAttachedBody;
 
 //----------------------------------------------------------------------
 

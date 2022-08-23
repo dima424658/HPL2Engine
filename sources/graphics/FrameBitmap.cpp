@@ -336,7 +336,7 @@ namespace hpl {
 	class cFrameBitmapCompare
 	{
 	public:
-		bool operator()(cBitmapSubImageComb* apCombA,cBitmapSubImageComb* apCombB) const
+		bool operator()(const cBitmapSubImageComb* apCombA, const cBitmapSubImageComb* apCombB) const
 		{
 			const cVector3l& vSizeA = apCombA->mpBitmap->GetSize();
 			const cVector3l& vSizeB = apCombB->mpBitmap->GetSize();

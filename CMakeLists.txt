@@ -1,30 +1,27 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.21)
 project(HPL2)
 
 set(HPL2_VERSION_MAJOR 2)
 set(HPL2_VERSION_MINOR 0)
 
-set(HPL2_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include" PARENT_SCOPE)
-set(DEP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../dependencies/include" PARENT_SCOPE)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules")
+
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    add_compile_options(-fdiagnostics-color=always)
+elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    add_compile_options(-fcolor-diagnostics)
+endif()
+
+set(HPL2_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
+set(DEP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../dependencies/include")
 set(DEP_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../dependencies/lib/${BIN_LIBROOT}")
-set(DEP_LIB_DIR ${DEP_LIB_DIR} PARENT_SCOPE)
 
-IF(APPLE)
-    SET(PRIVATE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../dependencies)
-    SET(PRIVATE_LIB_SUFFIX "lib/macosx")
-ELSEIF(LINUX)
-    SET(PRIVATE_LIB_SUFFIX "lib/${BIN_LIBROOT}")
-    SET(PRIVATE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../dependencies)
-ENDIF()
-
-OPTION(USE_SDL2 "Use SDL2 instead of SDL1.2" ON)
+SET(PRIVATE_LIB_SUFFIX "lib/${BIN_LIBROOT}")
+SET(PRIVATE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../dependencies)
 
 add_subdirectory(../dependencies/OALWrapper OALWrapper)
-
-IF(USE_SDL2)
-    add_definitions(-DUSE_SDL2)
-    SET(HPL2_DEFINES USE_SDL2 PARENT_SCOPE)
-ENDIF()
 
 add_definitions(
     -DUSE_OALWRAPPER
@@ -37,14 +34,12 @@ include_directories(
     ../dependencies/include
 )
 
-IF(LINUX)
-    add_library(binreloc STATIC ../dependencies/sources/binreloc/binreloc.c)
-    set_target_properties(binreloc PROPERTIES COMPILE_DEFINITIONS "ENABLE_BINRELOC")
+add_library(binreloc STATIC ../dependencies/sources/binreloc/binreloc.c)
+set_target_properties(binreloc PROPERTIES COMPILE_DEFINITIONS "ENABLE_BINRELOC")
 
-    include_directories(
-        ../dependencies/sources/binreloc/
-    )
-ENDIF()
+include_directories(
+    ../dependencies/sources/binreloc/
+)
 
 # common shared source
 file(GLOB common_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
@@ -77,6 +72,7 @@ file(GLOB common_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     include/system/*
     include/*.*
 )
+
 list(APPEND common_sources include/BuildID_HPL2_0.h)
 list(REMOVE_DUPLICATES common_sources)
 
@@ -109,7 +105,6 @@ file(GLOB impl_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     sources/impl/VertexBufferOpenGL.cpp
     # SDL
     sources/impl/GamepadSDL.cpp
-    sources/impl/GamepadSDL2.cpp
     sources/impl/KeyboardSDL.cpp
     sources/impl/MouseSDL.cpp
     sources/impl/MutexSDL.cpp
@@ -133,46 +128,21 @@ file(GLOB impl_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     sources/impl/MeshLoaderFBX.cpp
 )
 
-IF(APPLE)
-    LIST(APPEND impl_sources
-        sources/impl/PlatformMacOSX.mm
-        sources/impl/PlatformUnix.cpp
-        sources/impl/PlatformSDL.cpp
-    )
-    IF(NOT USE_SDL2)
-        LIST(APPEND impl_sources
-            SDLMain.m
-            SDLMain.h
-        )
-    ENDIF()
-ELSEIF(LINUX)
-    LIST(APPEND impl_sources
-        sources/impl/PlatformUnix.cpp
-        sources/impl/PlatformSDL.cpp
-    )
-ENDIF()
+LIST(APPEND impl_sources
+    sources/impl/PlatformUnix.cpp
+    sources/impl/PlatformSDL.cpp
+)
 
 # Setup buildID source
 
-IF(APPLE)
-    SET(VERSION_SUFFIX MacOSX)
-ELSEIF(LINUX)
-    SET(VERSION_SUFFIX Linux)
-ENDIF()
+SET(VERSION_SUFFIX Linux)
 
 SET(version_source
     sources/BuildID_HPL2_0_${VERSION_SUFFIX}.cpp
 )
 
-set_property(
-    SOURCE
-        sources/BuildID_HPL2_0_${VERSION_SUFFIX}.cpp
-        include/BuildID_HPL2_0.h
-    PROPERTY
-        GENERATED)
-
 set(BUILDCOUNTER_BIN "${CMAKE_CURRENT_SOURCE_DIR}/buildcounter.pl")
-set(BUILDCOUNTER_BIN ${BUILDCOUNTER_BIN} PARENT_SCOPE)
+set(BUILDCOUNTER_BIN ${BUILDCOUNTER_BIN})
 
 add_custom_command(
     OUTPUT
@@ -216,70 +186,47 @@ add_library(HPL2 STATIC
     ${impl_sources}
 )
 
-if (LINUX)
-    target_link_libraries(HPL2
-        OALWrapper # also pulls in ogg,vorbis,SDL
-        Newton angelscript binreloc
-        GL GLU GLEW
-        theora
-        IL
-        z
-        pthread dl
-        FBX xml2
-    )
-ELSEIF(APPLE)
-    FIND_LIBRARY(OPENGL_LIBRARY OpenGL)
-    FIND_LIBRARY(SC_LIBRARY SystemConfiguration)
-    FIND_LIBRARY(THEORA_LIBRARY Theora PATHS ${DEP_LIB_DIR} NO_DEFAULT_PATH)
-    FIND_LIBRARY(COCOA_LIBRARY Cocoa)
-    target_link_libraries(HPL2
-        OALWrapper
-        GLEW
-        z
-        Newton
-        angelscript
-        IL
-        FBX iconv ${SC_LIBRARY}
-        ${THEORA_LIBRARY}
-        ${OPENGL_LIBRARY}
-        ${COCOA_LIBRARY}
-    )
-    
-    # helper function to copy the needed frameworks in at build time
-    SET(HPL2_LIBRARIES libSDL2.dylib libIL.1.dylib)
-    SET(HPL2_LIBRARIES ${HPL2_LIBRARIES} PARENT_SCOPE)
+# OpenGL
+find_package(OpenGL REQUIRED)
+target_link_libraries(HPL2 OpenGL::OpenGL OpenGL::GLU)
 
-    FUNCTION(PostBuildMacBundle APP_TARGET framework_list lib_list)
-        INCLUDE(BundleUtilities)
-        GET_TARGET_PROPERTY(_BIN_NAME ${APP_TARGET} LOCATION)
-        GET_DOTAPP_DIR(${_BIN_NAME} _BUNDLE_DIR)
+# GLEW
+find_package(GLEW REQUIRED)
+target_link_libraries(HPL2 GLEW::GLEW)
 
-        set(_SCRIPT_FILE ${CMAKE_CURRENT_BINARY_DIR}/${APP_TARGET}_prep.cmake)
-        file(WRITE ${_SCRIPT_FILE}
-            "# Generated Script file\n"
-            "include(BundleUtilities)\n"
-            "get_bundle_and_executable(\"\${BUNDLE_APP}\" bundle executable valid)\n"
-            "if(valid)\n"
-            "  set(framework_path \"\${bundle}/Contents/Frameworks\")\n"
-            "  foreach(framework ${framework_list})\n"
-            "    file(MAKE_DIRECTORY \"\${framework_path}/\${framework}.framework/Versions/A/\")\n"
-            "    copy_resolved_framework_into_bundle(\${DEP_LIB_DIR}/\${framework}.framework/Versions/A/\${framework} \${framework_path}/\${framework}.framework/Versions/A/\${framework})\n"
-            "  endforeach()\n"
-            "  foreach(lib ${lib_list})\n"
-            "    copy_resolved_item_into_bundle(\${DEP_LIB_DIR}/\${lib} \${framework_path}/\${lib})\n"
-            "  endforeach()\n"
-            "else()\n"
-            "  message(ERROR \"App Not found? \${BUNDLE_APP}\")\n"
-            "endif()\n"
-            "#fixup_bundle(\"\${BUNDLE_APP}\" \"\" \"\${DEP_LIB_DIR}\")\n"
-        )
+# Theora
+find_package(Theora REQUIRED)
+target_link_libraries(HPL2 Theora::Theora)
 
-        ADD_CUSTOM_COMMAND(TARGET ${APP_TARGET}
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -DBUNDLE_APP="${_BUNDLE_DIR}" -DDEP_LIB_DIR="${DEP_LIB_DIR}" -P "${_SCRIPT_FILE}"
-        )
-    ENDFUNCTION()
-ENDIF()
+# DevIL
+find_package(DevIL REQUIRED)
+target_link_libraries(HPL2 DevIL::IL)
+
+find_package(ZLIB REQUIRED)
+target_link_libraries(HPL2 ZLIB::ZLIB)
+
+# POSIX Threads
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
+target_link_libraries(HPL2 Threads::Threads)
+
+# Find the XML processing library
+find_package(LibXml2 REQUIRED)
+target_link_libraries(HPL2 LibXml2::LibXml2)
+
+# Find SDL2
+find_package(SDL2 REQUIRED)
+target_link_libraries(HPL2 SDL2::SDL2)
+
+target_link_libraries(HPL2
+    OALWrapper # also pulls in ogg,vorbis,SDL
+    Newton
+    angelscript
+    binreloc
+    FBX
+    ${CMAKE_DL_LIBS}
+)
 
 FUNCTION(AddTestTarget target_name)
     add_executable(${target_name} EXCLUDE_FROM_ALL
@@ -292,6 +239,5 @@ FUNCTION(AddTestTarget target_name)
     )
 ENDFUNCTION()
 
-add_subdirectory(../tools/editors editors)
-add_subdirectory(../tools/mshconverter mshconverter)
-
+add_subdirectory(tools/editors editors)
+add_subdirectory(tools/mshconverter mshconverter)

@@ -908,13 +908,13 @@ namespace hpl {
 	extern bool PixelFormatIsCompressed(ePixelFormat aFormat);
 	extern bool PixelFormatIsDepth(ePixelFormat aFormat);
 	extern bool PixelFormatIsFloatingPoint(ePixelFormat aFormat);
-	inline char FloatColorToUChar(float afColor)
+	inline unsigned char FloatColorToUChar(float afColor)
 	{
-		return (unsigned char)(afColor * 255.0f + 0.5f); // Round up
+		return std::ceil(afColor * 255.0f); // Round up
 	}
 	inline float UCharColorToFloat(unsigned char alColor)
 	{
-		return (float)(alColor) / 255.0f;
+		return static_cast<float>(alColor) / 255.0f;
 	}
 
 

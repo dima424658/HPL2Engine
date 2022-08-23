@@ -52,18 +52,14 @@
 #include <OpenGL/OpenGL.h>
 #endif
 
-#if USE_SDL2
 #include "SDL2/SDL_syswm.h"
-#else
-#include "SDL/SDL_syswm.h"
-#endif
 
 #ifdef WIN32
 #include "impl/TaskKeyHook.h"
 #endif
 
 #ifndef WIN32
-#define CALLBACK __attribute__ ((__stdcall__))
+#define CALLBACK
 #endif
 
 namespace hpl {
