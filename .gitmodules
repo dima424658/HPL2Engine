@@ -1,0 +1,6 @@
+[submodule "OALWrapper"]
+	path = dependencies/OALWrapper
+	url = git@github.com:dima424658/OALWrapper.git
+[submodule "dependencies/OALWrapper"]
+	path = dependencies/OALWrapper
+	url = git@github.com:dima424658/OALWrapper.git

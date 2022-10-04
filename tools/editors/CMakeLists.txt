@@ -125,7 +125,7 @@ file(GLOB_RECURSE leveleditor_sources
 
 add_custom_command(
     OUTPUT
-        ${CMAKE_CURRENT_SOURCE_DIR}/leveleditor/BuildID_LevelEditor_Linux.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/leveleditor/BuildID_LevelEditor_${VERSION_SUFFIX}.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/leveleditor/BuildID_LevelEditor.h
     COMMAND
         ${BUILDCOUNTER_BIN}
@@ -135,7 +135,7 @@ add_custom_command(
 
 add_executable(LevelEditor EXCLUDE_FROM_ALL
     ${leveleditor_sources}
-    ${CMAKE_CURRENT_SOURCE_DIR}/leveleditor/BuildID_LevelEditor_Linux.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/leveleditor/BuildID_LevelEditor_${VERSION_SUFFIX}.cpp)
 target_link_libraries(LevelEditor HPL2)
 
 ### ModelEditor
@@ -248,7 +248,7 @@ file(GLOB_RECURSE modeleditor_sources
 
 add_custom_command(
     OUTPUT
-        ${CMAKE_CURRENT_SOURCE_DIR}/modeleditor/BuildID_ModelEditor_Linux.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/modeleditor/BuildID_ModelEditor_${VERSION_SUFFIX}.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/modeleditor/BuildID_ModelEditor.h
     COMMAND
         ${BUILDCOUNTER_BIN}
@@ -258,7 +258,7 @@ add_custom_command(
 
 add_executable(ModelEditor EXCLUDE_FROM_ALL
     ${modeleditor_sources}
-    ${CMAKE_CURRENT_SOURCE_DIR}/modeleditor/BuildID_ModelEditor_Linux.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/modeleditor/BuildID_ModelEditor_${VERSION_SUFFIX}.cpp)
 target_link_libraries(ModelEditor HPL2)
 
 ### ParticleEditor
@@ -324,7 +324,7 @@ file(GLOB_RECURSE particleeditor_sources
 
 add_custom_command(
     OUTPUT
-        ${CMAKE_CURRENT_SOURCE_DIR}/particleeditor/BuildID_ParticleEditor_Linux.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/particleeditor/BuildID_ParticleEditor_${VERSION_SUFFIX}.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/particleeditor/BuildID_ParticleEditor.h
     COMMAND
         ${BUILDCOUNTER_BIN}
@@ -334,7 +334,7 @@ add_custom_command(
 
 add_executable(ParticleEditor EXCLUDE_FROM_ALL
     ${particleeditor_sources}
-    ${CMAKE_CURRENT_SOURCE_DIR}/particleeditor/BuildID_ParticleEditor_Linux.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/particleeditor/BuildID_ParticleEditor_${VERSION_SUFFIX}.cpp)
 target_link_libraries(ParticleEditor HPL2)
 
 ### MaterialEditor
@@ -395,7 +395,7 @@ file(GLOB_RECURSE materialeditor_sources
 
 add_custom_command(
     OUTPUT
-        ${CMAKE_CURRENT_SOURCE_DIR}/materialeditor/BuildID_MaterialEditor_Linux.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/materialeditor/BuildID_MaterialEditor_${VERSION_SUFFIX}.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/materialeditor/BuildID_MaterialEditor.h
     COMMAND
         ${BUILDCOUNTER_BIN}
@@ -405,7 +405,7 @@ add_custom_command(
 
 add_executable(MaterialEditor EXCLUDE_FROM_ALL
     ${materialeditor_sources}
-    ${CMAKE_CURRENT_SOURCE_DIR}/materialeditor/BuildID_MaterialEditor_Linux.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/materialeditor/BuildID_MaterialEditor_${VERSION_SUFFIX}.cpp)
 target_link_libraries(MaterialEditor HPL2)
 
 #install(TARGETS LevelEditor ModelEditor ParticleEditor MaterialEditor

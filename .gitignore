@@ -49,3 +49,7 @@ BuildID_*.cpp
 BuildID_*.h
 
 [Rr]edist
+
+dependencies/**
+.DS_Store
+.vscode
