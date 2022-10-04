@@ -29,9 +29,47 @@
 
 #include "system/LowLevelSystem.h"
 
-#include <fmod/fmod.h>
+#include <fmod.hpp>
 
 namespace hpl {
+
+	//-----------------------------------------------------------------------
+
+	cSoundDeviceIdentifierFmod::cSoundDeviceIdentifierFmod(FMOD::System* apSystem, int alID)
+		: msName(256, '\0')
+	{
+		if(apSystem->getDriverInfo(alID, msName.data(), msName.size(), nullptr, nullptr, nullptr, nullptr) != FMOD_OK)
+			Error(" Unable to get FMOD driver info.\n");
+
+		mbDefault = alID == 0;
+	}
+
+	//-----------------------------------------------------------------------
+
+	void iLowLevelSound::PopulateAvailableSoundDevices(tSoundDeviceVec& avSoundDeviceVec)
+	{
+		FMOD::System* system = nullptr;
+    	if(FMOD::System_Create(&system) != FMOD_OK)
+		{
+			FatalError(" Unable to create FMOD system.");
+			return;
+		}
+
+		STLDeleteAll(avSoundDeviceVec);
+
+		int alNumDrivers = 0;
+		if(system->getNumDrivers(&alNumDrivers) != FMOD_OK)
+		{
+			FatalError(" Unable to get FMOD number of output drivers available.");
+			return;
+		}
+
+		for(int i = 0; i < alNumDrivers; ++i)
+		{
+			auto device = hplNew(cSoundDeviceIdentifierFmod, (system, i));
+			avSoundDeviceVec.push_back(device);
+		}
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// CONSTRUCTORS
@@ -41,46 +79,23 @@ namespace hpl {
 
 	cLowLevelSoundFmod::cLowLevelSoundFmod()
 	{
-		mvFormats[0] = "WAV";mvFormats[1] = "OGG";mvFormats[2] = "MP3";
+		mvFormats[0] = "WAV";
+		mvFormats[1] = "OGG";
+		mvFormats[2] = "MP3";
 		mvFormats[3] = "";
 
-		
-		Log(" Initializing FMOD.\n");
-		FSOUND_SetDriver(0);
-		FSOUND_SetMixer(FSOUND_MIXER_AUTODETECT);
-
-		//Debug:
-		//FSOUND_SetMaxHardwareChannels(0);
-		
-		FSOUND_Init(44100, 32, 0); //Change this to get effects later on..
-
-		//Setup channel limit.
-		int lChannels2D, lChannels3d, lChannelsTotal;
-		FSOUND_GetNumHWChannels(&lChannels2D,&lChannels3d,&lChannelsTotal);
-		Log(" Number of hardware 2D channels: %d\n",lChannels2D);
-		Log(" Number of hardware 3D channels: %d\n",lChannels3d);
-		Log(" Number of total hardware channels: %d\n",lChannelsTotal);
-        
-		FSOUND_SetMinHardwareChannels(32);
-		FSOUND_SetMaxHardwareChannels(32);
-				
-		//Default listener settings.
-		float Pos[3] = {0,0,0};
-		float Vel[3] = {0,0,0};
-
-		FSOUND_3D_Listener_SetAttributes(Pos,Vel,0,0,-1,0,1,0);
-		mvListenerForward = cVector3f(0,0,-1);
-		mvListenerUp = cVector3f(0,1,0);
-
-		//Default volume:
-		SetVolume(1.0f);
+		mpSystem = nullptr;
 	}
 
 	//-----------------------------------------------------------------------
 
 	cLowLevelSoundFmod::~cLowLevelSoundFmod()
 	{
-		FSOUND_Close();
+		if(mpSystem && mpSystem->close() != FMOD_OK)
+			Error(" Unable to close FMOD system.\n");
+
+		if(mpSystem && mpSystem->release() != FMOD_OK)
+			Error(" Unable to release FMOD system.\n");
 	}
 
 	//-----------------------------------------------------------------------
@@ -91,10 +106,10 @@ namespace hpl {
 
 	//-----------------------------------------------------------------------
 
-	iSoundData* cLowLevelSoundFmod::LoadSoundData(const tString& asName, const tString& asFilePath,
+	iSoundData* cLowLevelSoundFmod::LoadSoundData(const tString& asName, const tWString& asFilePath,
 												const tString& asType, bool abStream,bool abLoopStream)
 	{
-		cFmodSoundData* pSoundData = new cFmodSoundData(asName,abStream);
+		cFmodSoundData* pSoundData = new cFmodSoundData(mpSystem, asName,abStream);
 		
 		pSoundData->SetLoopStream(abLoopStream);
 		
@@ -123,7 +138,7 @@ namespace hpl {
 	
 	void cLowLevelSoundFmod::UpdateSound(float afTimeStep)
 	{
-		FSOUND_Update();
+		mpSystem->update();
 	}
 	
 	//-----------------------------------------------------------------------
@@ -145,10 +160,13 @@ namespace hpl {
 				0, 0,0, 1
 			);
 
-		float fVel[3]={0,0,0};
-		FSOUND_3D_Listener_SetAttributes(avPos.v,fVel,
-										mvListenerForward.x,mvListenerForward.y,mvListenerForward.z,
-										mvListenerUp.x,mvListenerUp.y,mvListenerUp.z);
+		FMOD_VECTOR fmodPosition{avPos.x, avPos.y, avPos.z};
+		FMOD_VECTOR fmodVelocity{0.0f, 0.0f, 0.0f};
+		FMOD_VECTOR fmodForward{mvListenerForward.x, mvListenerForward.y, mvListenerForward.z};
+		FMOD_VECTOR fmodUp{mvListenerUp.x, mvListenerUp.y, mvListenerUp.z};
+
+		if(mpSystem->set3DListenerAttributes(0, &fmodPosition, &fmodVelocity, &fmodForward, &fmodUp) != FMOD_OK)
+			Error(" Unable to set FMOD listener attributes\n");
 	}
 
 	//-----------------------------------------------------------------------
@@ -157,9 +175,13 @@ namespace hpl {
 	{
 		mvListenerPosition = avPos;
 	
-		FSOUND_3D_Listener_SetAttributes(avPos.v,mvListenerVelocity.v,
-			mvListenerForward.x,mvListenerForward.y,mvListenerForward.z,
-			mvListenerUp.x,mvListenerUp.y,mvListenerUp.z);
+		FMOD_VECTOR fmodPosition{avPos.x, avPos.y, avPos.z};
+		FMOD_VECTOR fmodVelocity{mvListenerVelocity.x, mvListenerVelocity.y, mvListenerVelocity.z};
+		FMOD_VECTOR fmodForward{mvListenerForward.x, mvListenerForward.y, mvListenerForward.z};
+		FMOD_VECTOR fmodUp{mvListenerUp.x, mvListenerUp.y, mvListenerUp.z};
+
+		if(mpSystem->set3DListenerAttributes(0, &fmodPosition, &fmodVelocity, &fmodForward, &fmodUp) != FMOD_OK)
+			Error(" Unable to set FMOD listener attributes\n");
 	}
 	
 	//-----------------------------------------------------------------------
@@ -173,7 +195,7 @@ namespace hpl {
 
 	void cLowLevelSoundFmod::SetSetRolloffFactor(float afFactor)
 	{
-		FSOUND_3D_SetRolloffFactor(afFactor);
+		//FSOUND_3D_SetRolloffFactor(afFactor);
 	}
 	
 	//-----------------------------------------------------------------------
@@ -184,9 +206,71 @@ namespace hpl {
 
 		int lVol = (int)(255.0f*afVolume);
 
-        FSOUND_SetSFXMasterVolume(lVol);
+        //FSOUND_SetSFXMasterVolume(lVol);
 	}
 
 	//-----------------------------------------------------------------------
 
+	void cLowLevelSoundFmod::Init(int alSoundDeviceID, bool abUseEnvAudio,int alMaxChannels, 
+					int alStreamUpdateFreq, bool abUseThreading, bool abUseVoiceManagement,
+					int alMaxMonoSourceHint, int alMaxStereoSourceHint,
+					int alStreamingBufferSize, int alStreamingBufferCount, bool abEnableLowLevelLog)
+	{
+		Log(" Initializing FMOD.\n");
+
+    	if(FMOD::System_Create(&mpSystem) != FMOD_OK)
+			FatalError("  Unable to create FMOD system.");
+	
+    	if(mpSystem->init(alMaxChannels, FMOD_INIT_NORMAL, nullptr) != FMOD_OK)
+			FatalError("  Unable to initialize FMOD system.");
+		
+		//Setup channel limit.
+		int lChannels = 0;
+		auto result = mpSystem->getSoftwareChannels(&lChannels);
+		Log("  Number of software channels: %d\n", lChannels);
+
+		//Default listener settings.
+		FMOD_VECTOR Pos{0.0f, 0.0f, 0.0f};
+		FMOD_VECTOR Vel{0.0f, 0.0f, 0.0f};
+
+		FMOD_VECTOR Forward{0.0f, 0.0f, -1.0f};
+		FMOD_VECTOR Up{0.0f, 1.0f, 0.0f};
+		
+		mvListenerForward = cVector3f(0,0,-1);
+		mvListenerUp = cVector3f(0,1,0);
+
+		if(mpSystem->set3DListenerAttributes(0, &Pos, &Vel, &Forward, &Up) != FMOD_OK)
+			Error("  Unable to set FMOD listener attributes.");
+
+		//Default volume:
+		SetVolume(1.0f);
+	}
+
+	//-----------------------------------------------------------------------
+
+	void cLowLevelSoundFmod::SetEnvVolume( float afEnvVolume )
+	{
+
+	}
+
+	iSoundEnvironment* cLowLevelSoundFmod::LoadSoundEnvironment (const tString& asFilePath)
+	{
+
+	}
+	void cLowLevelSoundFmod::SetSoundEnvironment ( iSoundEnvironment* apSoundEnv )
+	{
+
+	}
+	void cLowLevelSoundFmod::FadeSoundEnvironment( iSoundEnvironment* apSourceSoundEnv, iSoundEnvironment* apDestSoundEnv, float afT )
+	{
+
+	}
+
+	iSoundDeviceIdentifier* cLowLevelSoundFmod::GetCurrentSoundDevice()
+	{
+		if(mvSoundDevices.empty())
+			return nullptr;
+			
+		return mvSoundDevices[0];
+	}
 }

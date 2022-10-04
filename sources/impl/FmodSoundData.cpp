@@ -31,18 +31,20 @@ namespace hpl {
 
 	//-----------------------------------------------------------------------
 	
-	cFmodSoundData::cFmodSoundData(const tString& asName, bool abStream) : iSoundData(asName,_W(""),abStream)
+	cFmodSoundData::cFmodSoundData(FMOD::System* system, const tString& asName, bool abStream) : iSoundData(asName,_W(""),abStream)
 	{
-		mpSample = NULL;
-		mpStream = NULL;
+		gpSystem = system;
+		mpSound = nullptr;
 	}
 	
 	//-----------------------------------------------------------------------
 
 	cFmodSoundData::~cFmodSoundData()
 	{
-		if(mpSample){
-			FSOUND_Sample_Free(mpSample);
+		if(mpSound)
+		{
+			mpSound->release();
+			mpSound = nullptr;
 		}
 	}
 	
@@ -58,23 +60,17 @@ namespace hpl {
 	{
 		SetFullPath(asFile);
 
-		int lFlags=0;
-		
-		unsigned int lCaps = 0;
-		FSOUND_GetDriverCaps(0, &lCaps);//Current driver here instead of 0
-		
-		//Get the load flags
-		if(lCaps & FSOUND_CAPS_HARDWARE)	lFlags |= FSOUND_HW3D;
-		//if(mbStream)						lFlags |= FSOUND_STREAMABLE;
+		FMOD_RESULT result;
 
 		if(mbStream)
 		{
-			if(mbLoopStream)
-				mpStream = FSOUND_Stream_Open(cString::To8Char(asFile).c_str(), FSOUND_NORMAL | FSOUND_LOOP_NORMAL,0,0);
-			else
-				mpStream = FSOUND_Stream_Open(cString::To8Char(asFile).c_str(), FSOUND_NORMAL,0,0);
 
-			if(mpStream==NULL){
+			if(mbLoopStream)
+				result = gpSystem->createStream(cString::To8Char(asFile).c_str(), FMOD_LOOP_NORMAL | FMOD_2D, nullptr, &mpSound);
+			else
+				result = gpSystem->createStream(cString::To8Char(asFile).c_str(), FMOD_2D, nullptr, &mpSound);
+
+			if(result != FMOD_OK){
 				Error("Couldn't load sound stream '%s'\n", cString::To8Char(asFile).c_str());
 				return false;
 			}
@@ -82,14 +78,15 @@ namespace hpl {
 		}
 		else
 		{
-			mpSample = FSOUND_Sample_Load(FSOUND_FREE,cString::To8Char(asFile).c_str(), lFlags,0,0);
-			//mpSample = FSOUND_Sample_Load(FSOUND_FREE,asFile.c_str(), FSOUND_HW3D,0,0);
-			if(mpSample==NULL){
+			result = gpSystem->createSound(cString::To8Char(asFile).c_str(), FMOD_3D, nullptr, &mpSound);
+
+			if(result != FMOD_OK){
 				Error("Couldn't load sound data '%s'\n", asFile.c_str());
 				return false;
 			}
-			FSOUND_Sample_SetMinMaxDistance(mpSample, 4.0f, 10000.0f);    
-			FSOUND_Sample_SetMode(mpSample, FSOUND_LOOP_NORMAL);
+
+			mpSound->set3DMinMaxDistance(4.0f, 10000.0f);
+			mpSound->setMode(FMOD_LOOP_NORMAL);
 		}
 				
 		return true;
@@ -99,24 +96,16 @@ namespace hpl {
 
 	iSoundChannel* cFmodSoundData::CreateChannel(int alPriority)
 	{
-		if(mpSample==NULL && mpStream==NULL)return NULL;
+		if(mpSound == nullptr)
+			return nullptr;
 
-		int lHandle;
-		iSoundChannel *pSoundChannel=NULL;
-		if(mbStream)
-		{
-			lHandle = FSOUND_Stream_PlayEx(FSOUND_FREE,mpStream,NULL, 1);
-			if(lHandle==-1)return NULL;
+		FMOD::Channel* fmodChannel = nullptr;
+		iSoundChannel *pSoundChannel = NULL;
+		
+		if(gpSystem->playSound(mpSound, nullptr, true, &fmodChannel) != FMOD_OK)
+			return nullptr;
 
-			pSoundChannel = hplNew( cFmodSoundChannel,(this,lHandle, mpSoundManger));
-		}
-		else
-		{
-			lHandle = FSOUND_PlaySoundEx(FSOUND_FREE,mpSample,NULL, 1);
-			if(lHandle==-1)return NULL;
-			
-			pSoundChannel = hplNew( cFmodSoundChannel,(this,lHandle, mpSoundManger));
-		}
+		pSoundChannel = hplNew( cFmodSoundChannel,(this,fmodChannel, mpSoundManger));
 
 		return pSoundChannel;
 	}

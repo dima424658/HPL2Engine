@@ -22,7 +22,25 @@
 
 #include "sound/LowLevelSound.h"
 
+namespace FMOD
+{
+	class System;
+}
+
 namespace hpl {
+	class cSoundDeviceIdentifierFmod : public iSoundDeviceIdentifier
+	{
+	public:
+		cSoundDeviceIdentifierFmod(FMOD::System* apSystem, int alID);
+
+		int GetID() override { return mlID; }
+		const tString& GetName() override { return msName; }
+		bool IsDefault() override { return mbDefault; }
+	private:
+		int mlID;
+		tString msName;
+		bool mbDefault;
+	};
 
 	class cLowLevelSoundFmod : public iLowLevelSound
 	{
@@ -30,25 +48,40 @@ namespace hpl {
 		cLowLevelSoundFmod();
 		~cLowLevelSoundFmod();
 
-		void GetSupportedFormats(tStringList &alstFormats);
+		void GetSupportedFormats(tStringList &alstFormats) override;
 
-		iSoundData* LoadSoundData(const tString& asName,const tString& asFilePath,
-									const tString& asType, bool abStream,bool abLoopStream);
+		iSoundData* LoadSoundData(const tString& asName,const tWString& asFilePath,
+									const tString& asType, bool abStream,bool abLoopStream) override;
 
-		void UpdateSound(float afTimeStep);
+		void UpdateSound(float afTimeStep) override;
 
 		void SetListenerAttributes (const cVector3f &avPos,const cVector3f &avVel,
-								const cVector3f &avForward,const cVector3f &avUp);
-		void SetListenerPosition(const cVector3f &avPos);
+								const cVector3f &avForward,const cVector3f &avUp) override;
+		void SetListenerPosition(const cVector3f &avPos) override;
 
-		void SetSetRolloffFactor(float afFactor);
+		void SetSetRolloffFactor(float afFactor) override;
 
-		void SetListenerAttenuation (bool abEnabled);
+		void SetListenerAttenuation (bool abEnabled) override;
 
-		virtual void SetVolume(float afVolume);
+		void Init(int alSoundDeviceID, bool abUseEnvAudio,int alMaxChannels, 
+					int alStreamUpdateFreq, bool abUseThreading, bool abUseVoiceManagement,
+					int alMaxMonoSourceHint, int alMaxStereoSourceHint,
+					int alStreamingBufferSize, int alStreamingBufferCount, bool abEnableLowLevelLog) override;
+
+		void SetVolume(float afVolume) override;
+
+		void SetEnvVolume( float afEnvVolume ) override;
+
+		iSoundEnvironment* LoadSoundEnvironment (const tString& asFilePath) override;
+		void SetSoundEnvironment ( iSoundEnvironment* apSoundEnv ) override;
+		void FadeSoundEnvironment( iSoundEnvironment* apSourceSoundEnv, iSoundEnvironment* apDestSoundEnv, float afT ) override;
+
+		iSoundDeviceIdentifier* GetCurrentSoundDevice() override;
 
 	private:
 		tString mvFormats[30];
+
+		FMOD::System* mpSystem;
 	};
 };
 #endif // HPL_LOWLEVELSOUND_FMOD_H

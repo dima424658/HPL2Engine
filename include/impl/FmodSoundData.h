@@ -22,14 +22,14 @@
 
 #include "sound/SoundData.h"
 
-#include <fmod/fmod.h>
+#include <fmod.hpp>
 
 namespace hpl {
 
 	class cFmodSoundData : public iSoundData
 	{
 	public:
-		cFmodSoundData(const tString& asName, bool abStream);
+		cFmodSoundData(FMOD::System* system, const tString& asName, bool abStream);
 		~cFmodSoundData();
 
 		bool CreateFromFile(const tWString &asFile);
@@ -41,12 +41,11 @@ namespace hpl {
 		bool IsStereo(){ return false;}
 
 		//FMOD Specific
-		FSOUND_SAMPLE *GetSample(){ return mpSample;}
-		FSOUND_STREAM *GetStream(){ return mpStream;}
+		FMOD::Sound *GetSample(){ return mpSound;}
 	
 	private:
-		FSOUND_SAMPLE * mpSample;
-		FSOUND_STREAM * mpStream;
+		FMOD::Sound* mpSound;
+		FMOD::System* gpSystem;
 	};
 };
 #endif // HPL_FMOD_SOUND_DATA_H

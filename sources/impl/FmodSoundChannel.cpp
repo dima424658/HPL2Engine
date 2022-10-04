@@ -31,27 +31,30 @@ namespace hpl {
 
 	//-----------------------------------------------------------------------
 	
-	cFmodSoundChannel::cFmodSoundChannel(iSoundData* apData, int alChannel,cSoundManager* apSoundManger)
+	cFmodSoundChannel::cFmodSoundChannel(iSoundData* apData, FMOD::Channel* alChannel,cSoundManager* apSoundManger)
 	: iSoundChannel(apData, apSoundManger)
 	{
 		mlChannel = alChannel;
-		mlDefaultFreq = FSOUND_GetFrequency(mlChannel);
+		mlChannel->getFrequency(&mlDefaultFreq);
 
-		for(int i=0;i<3;i++){
-			mfPosition[i] = 0;
-			mfVelocity[i] = 0;
-		}
+		mfPosition.x = 0.0f;
+		mfPosition.y = 0.0f;
+		mfPosition.z = 0.0f;
 
-		FSOUND_3D_SetAttributes(mlChannel,&mfPosition[0], &mfVelocity[0]);
-		FSOUND_3D_SetMinMaxDistance(mlChannel, 100000.0f, 200000.0f);
+		mfVelocity.x = 0.0f;
+		mfVelocity.y = 0.0f;
+		mfVelocity.z = 0.0f;
+
+		mlChannel->set3DAttributes(&mfPosition, &mfVelocity);
+		mlChannel->set3DMinMaxDistance(100000.0f, 200000.0f);
 	}
 	
 	//-----------------------------------------------------------------------
 
 	cFmodSoundChannel::~cFmodSoundChannel()
 	{
-		if(mlChannel>0)
-			FSOUND_StopSound(mlChannel);
+		if(mlChannel != nullptr)
+			mlChannel->stop();
 
 		DestroyData();
 	}
@@ -75,8 +78,8 @@ namespace hpl {
 	
 	void cFmodSoundChannel::Stop()
 	{
-		FSOUND_StopSound(mlChannel);
-		mlChannel = -1;
+		mlChannel->stop();
+		mlChannel = nullptr;
 
 		mbStopUsed = true;
 	}
@@ -86,7 +89,7 @@ namespace hpl {
 	void cFmodSoundChannel::SetPaused(bool abX)
 	{
 		mbPaused = abX;
-		FSOUND_SetPaused(mlChannel,abX);
+		mlChannel->setPaused(abX);
 
 		if(mbPaused)
 		{
@@ -100,9 +103,9 @@ namespace hpl {
 	{
 		mfSpeed = afSpeed;
 		
-		int lFreq = (int)(((float)mlDefaultFreq) * afSpeed);
+		int lFreq = mlDefaultFreq * afSpeed;
 
-		FSOUND_SetFrequency(mlChannel, lFreq);
+		mlChannel->setFrequency(lFreq);
 	}
 	
 	//-----------------------------------------------------------------------
@@ -111,9 +114,7 @@ namespace hpl {
 	{
 		mfVolume = afVolume;
 		
-		int lVol = (int)(255.0f*afVolume);
-
-		FSOUND_SetVolume(mlChannel, lVol);
+		mlChannel->setVolume(afVolume);
 	}
 	
 	//-----------------------------------------------------------------------
@@ -122,18 +123,16 @@ namespace hpl {
 	{
 		mbLooping = abLoop;
 
-		FSOUND_SetLoopMode(mlChannel, mbLooping?FSOUND_LOOP_NORMAL:FSOUND_LOOP_OFF);
+		mlChannel->setMode(mbLooping ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF);
 	}
 
 	//-----------------------------------------------------------------------
 
 	void cFmodSoundChannel::SetPan (float afPan)
 	{
-		int lPan = (int)(255.0f*afPan);
-
 		//Log("Pan: %d\n", lPan);
 		
-		FSOUND_SetPan(mlChannel, lPan);
+		mlChannel->setPan(afPan);
 	}
 	
 	//-----------------------------------------------------------------------
@@ -155,8 +154,12 @@ namespace hpl {
 	void cFmodSoundChannel::SetPosition(const cVector3f &avPos)
 	{
 		mvPosition = avPos;
+
+		mfPosition.x = avPos.x;
+		mfPosition.y = avPos.y;
+		mfPosition.z = avPos.z;
 		
-		FSOUND_3D_SetAttributes(mlChannel,mvPosition.v,mvVelocity.v);
+		mlChannel->set3DAttributes(&mfPosition, &mfVelocity);
 	}
 	
 	//-----------------------------------------------------------------------
@@ -165,7 +168,11 @@ namespace hpl {
 	{
 		mvVelocity = avVel;
 
-		FSOUND_3D_SetAttributes(mlChannel,mvPosition.v,mvVelocity.v);
+		mfVelocity.x = avVel.x;
+		mfVelocity.y = avVel.y;
+		mfVelocity.z = avVel.z;
+		
+		mlChannel->set3DAttributes(&mfPosition, &mfVelocity);
 	}
 	
 	//-----------------------------------------------------------------------
@@ -189,23 +196,31 @@ namespace hpl {
 	
 	bool cFmodSoundChannel::IsPlaying()
 	{
-		return FSOUND_IsPlaying(mlChannel)?true:false;	
+		bool isPlaying = false;
+
+		mlChannel->isPlaying(&isPlaying);
+
+		return isPlaying;
 	}
 	//-----------------------------------------------------------------------
 	
 	void cFmodSoundChannel::SetPriority(int alX)
 	{
-		int lPrio = alX+mlPriorityModifier;
-		if(lPrio>255)lPrio =255;
+		int lPrio = alX + mlPriorityModifier;
+		if(lPrio>255)
+			lPrio =255;
 		
-		FSOUND_SetPriority(mlChannel,lPrio);
+		mlChannel->setPriority(lPrio);
 	}
 	
 	//-----------------------------------------------------------------------
 	
 	int cFmodSoundChannel::GetPriority()
 	{
-		return FSOUND_GetPriority(mlChannel);
+		int priority = 0;
+		mlChannel->getPriority(&priority);
+		
+		return priority;
 	}
 	
 	//-----------------------------------------------------------------------

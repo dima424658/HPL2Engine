@@ -23,14 +23,14 @@
 #include "sound/SoundChannel.h"
 #include "sound/SoundData.h"
 
-#include <fmod/fmod.h>
+#include <fmod.hpp>
 
 namespace hpl {
 
 	class cFmodSoundChannel : public iSoundChannel
 	{
 	public:
-		cFmodSoundChannel(iSoundData* apData, int alChannel, cSoundManager* apSoundManger);
+		cFmodSoundChannel(iSoundData* apData, FMOD::Channel* alChannel, cSoundManager* apSoundManger);
 		~cFmodSoundChannel();
 
 		void Play();
@@ -41,7 +41,7 @@ namespace hpl {
 		void SetVolume (float afVolume); 
 		void SetLooping (bool abLoop);
 		void SetPan (float afPan);
-		void Set3D(bool ab3D);
+		void Set3D (bool ab3D);
 
 		void SetPriority(int alX);
 		int GetPriority();
@@ -66,11 +66,11 @@ namespace hpl {
 		
 	
 	private:
-		int mlChannel;
-		int mlDefaultFreq;
+		FMOD::Channel* mlChannel;
+		float mlDefaultFreq;
 
-		float mfPosition[3];
-		float mfVelocity[3];
+		FMOD_VECTOR mfPosition;
+		FMOD_VECTOR mfVelocity;
 	};
 };
 #endif // HPL_SOUND_CHANNEL_H
