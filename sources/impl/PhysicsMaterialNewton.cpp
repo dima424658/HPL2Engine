@@ -310,12 +310,12 @@ namespace hpl {
 
 			//Force
 			cVector3f vForce;
-			NewtonMaterialGetContactForce(pMaterial,vForce.v);
+			NewtonMaterialGetContactForce(pMaterial, pBody0, vForce.v);
 			contactData.mvForce += vForce;
 
 			//Position and normal
 			cVector3f vPos, vNormal;
-			NewtonMaterialGetContactPositionAndNormal(pMaterial,vPos.v, vNormal.v);
+			NewtonMaterialGetContactPositionAndNormal(pMaterial, pBody0, vPos.v, vNormal.v);
 
 			contactData.mvContactNormal += vNormal;
 			contactData.mvContactPosition += vPos;
@@ -333,7 +333,7 @@ namespace hpl {
 
 				cCollidePoint collidePoint;
 				collidePoint.mfDepth = 1;
-				NewtonMaterialGetContactPositionAndNormal (pMaterial, collidePoint.mvPoint.v, collidePoint.mvNormal.v);
+				NewtonMaterialGetContactPositionAndNormal (pMaterial, pBody1, collidePoint.mvPoint.v, collidePoint.mvNormal.v);
 
 				pContactBody1->GetWorld()->GetContactPoints()->push_back(collidePoint);
 

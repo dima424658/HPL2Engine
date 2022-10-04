@@ -232,9 +232,8 @@ namespace hpl {
 
 			cCollideShapeNewton *pNewtonShape = static_cast<cCollideShapeNewton*>(avShapes[i]);
 
-			NewtonSceneProxy* pProxy = NewtonSceneCollisionCreateProxy(mpNewtonCollision, pNewtonShape->GetNewtonCollision());
-			//cMatrixf mtxTransform = cMatrixf::Identity;
-			//NewtonSceneProxySetMatrix(pProxy, &mtxTransform.GetTranspose().m[0][0]);
+			auto mtxTransform = cMatrixf::Identity.GetTranspose();
+			NewtonSceneProxy* pProxy = NewtonSceneCollisionCreateProxy(mpNewtonCollision, pNewtonShape->GetNewtonCollision(), &mtxTransform.m[0][0]);
 			if(apMatrices)
 			{
 				//TODO!
