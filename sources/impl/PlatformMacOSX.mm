@@ -55,22 +55,24 @@ namespace hpl {
     void OSXAlertBox(eMsgBoxType eType, tString caption, tString message)
     {
         NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-        NSAlert *alert = [NSAlert alertWithMessageText:[NSString stringWithFormat:@"%s", caption.c_str()]
-                                         defaultButton:nil // will default to localized OK
-                                       alternateButton:nil
-                                           otherButton:nil
-                             informativeTextWithFormat:@"%s", message.c_str()];
+        
+        NSAlert *alert = [[NSAlert alloc] init];
+        [alert setMessageText: [NSString stringWithFormat:@"%s", caption.c_str()]];
+        [alert addButtonWithTitle : @"OK"];
+        [alert setInformativeText: [NSString stringWithFormat:@"%s", caption.c_str()]];
+    
         switch (eType) {
             case eMsgBoxType_Error:
-                [alert setAlertStyle:NSCriticalAlertStyle];
+                [alert setAlertStyle: NSAlertStyleCritical];
                 break;
             case eMsgBoxType_Warning:
-                [alert setAlertStyle:NSWarningAlertStyle];
+                [alert setAlertStyle: NSAlertStyleWarning];
                 break;
             case eMsgBoxType_Info:
             case eMsgBoxType_Default:
-                [alert setAlertStyle:NSInformationalAlertStyle];
+                [alert setAlertStyle: NSAlertStyleInformational];
         }
+        
         [alert runModal];
         [pool drain];
     }

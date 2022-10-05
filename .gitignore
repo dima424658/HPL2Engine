@@ -49,3 +49,9 @@ BuildID_*.cpp
 BuildID_*.h
 
 [Rr]edist
+
+dependencies/**
+!dependencies/binreloc
+!dependencies/OALWrapper
+.DS_Store
+.vscode

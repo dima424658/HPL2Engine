@@ -6,40 +6,13 @@ set(HPL2_VERSION_MINOR 0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     add_compile_options(-fdiagnostics-color=always)
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     add_compile_options(-fcolor-diagnostics)
 endif()
-
-set(HPL2_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
-set(DEP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../dependencies/include")
-set(DEP_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../dependencies/lib/${BIN_LIBROOT}")
-
-SET(PRIVATE_LIB_SUFFIX "lib/${BIN_LIBROOT}")
-SET(PRIVATE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../dependencies)
-
-add_subdirectory(../dependencies/OALWrapper OALWrapper)
-
-add_definitions(
-    -DUSE_OALWRAPPER
-)
-
-include_directories(
-    include
-    #Important that this is before dependencies so the correct OpenAL headers are used
-    ${OALWRAPPER_INCLUDE_DIR}
-    ../dependencies/include
-)
-
-add_library(binreloc STATIC ../dependencies/sources/binreloc/binreloc.c)
-set_target_properties(binreloc PROPERTIES COMPILE_DEFINITIONS "ENABLE_BINRELOC")
-
-include_directories(
-    ../dependencies/sources/binreloc/
-)
 
 # common shared source
 file(GLOB common_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
@@ -128,6 +101,12 @@ file(GLOB impl_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     sources/impl/MeshLoaderFBX.cpp
 )
 
+if(APPLE)
+    list(APPEND apple_sources sources/impl/PlatformMacOSX.mm)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Foundation -framework AppKit")
+    list(APPEND impl_sources ${apple_sources})
+endif()
+
 LIST(APPEND impl_sources
     sources/impl/PlatformUnix.cpp
     sources/impl/PlatformSDL.cpp
@@ -135,11 +114,17 @@ LIST(APPEND impl_sources
 
 # Setup buildID source
 
-SET(VERSION_SUFFIX Linux)
+if(APPLE)
+    SET(VERSION_SUFFIX MacOSX)
+elseif(UNIX)
+    SET(VERSION_SUFFIX Linux)
+elseif(WIN32)
+    SET(VERSION_SUFFIX Win32)
+else()
+    message(FATAL_ERROR "Unknown target system.")
+endif()
 
-SET(version_source
-    sources/BuildID_HPL2_0_${VERSION_SUFFIX}.cpp
-)
+SET(version_source sources/BuildID_HPL2_0_${VERSION_SUFFIX}.cpp)
 
 set(BUILDCOUNTER_BIN "${CMAKE_CURRENT_SOURCE_DIR}/buildcounter.pl")
 set(BUILDCOUNTER_BIN ${BUILDCOUNTER_BIN})
@@ -166,20 +151,7 @@ source_group("OpenAL Specific" REGULAR_EXPRESSION "\\/impl\\/.*OpenAL.+")
 source_group("Win32" REGULAR_EXPRESSION "\\/impl\\/.+Win32.+")
 source_group("Platform" REGULAR_EXPRESSION "\\/impl\\/Platform.+")
 
-
-# setup libs
-
-add_library(Newton STATIC IMPORTED)
-set_target_properties(Newton PROPERTIES IMPORTED_LOCATION ${DEP_LIB_DIR}/libNewton.a)
-
-add_library(angelscript STATIC IMPORTED)
-set_target_properties(angelscript PROPERTIES IMPORTED_LOCATION ${DEP_LIB_DIR}/libangelscript.a)
-
-add_library(FBX STATIC IMPORTED)
-set_target_properties(FBX PROPERTIES IMPORTED_LOCATION ${DEP_LIB_DIR}/libfbxsdk.a)
-
 # setup HPL2 compile target
-
 add_library(HPL2 STATIC
     ${common_sources}
     ${version_sources}
@@ -188,45 +160,67 @@ add_library(HPL2 STATIC
 
 # OpenGL
 find_package(OpenGL REQUIRED)
-target_link_libraries(HPL2 OpenGL::OpenGL OpenGL::GLU)
 
 # GLEW
 find_package(GLEW REQUIRED)
-target_link_libraries(HPL2 GLEW::GLEW)
 
 # Theora
 find_package(Theora REQUIRED)
-target_link_libraries(HPL2 Theora::Theora)
 
 # DevIL
 find_package(DevIL REQUIRED)
-target_link_libraries(HPL2 DevIL::IL)
 
+# Zlib
 find_package(ZLIB REQUIRED)
-target_link_libraries(HPL2 ZLIB::ZLIB)
 
 # POSIX Threads
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
-target_link_libraries(HPL2 Threads::Threads)
 
 # Find the XML processing library
 find_package(LibXml2 REQUIRED)
-target_link_libraries(HPL2 LibXml2::LibXml2)
+
+# Zlib
+find_package(FBX REQUIRED)
+
+# AngelScript
+set(AngelScript_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/angelscript)
+find_package(AngelScript REQUIRED)
+
+# AngelScript
+set(Newton_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/newton)
+find_package(Newton REQUIRED)
 
 # Find SDL2
 find_package(SDL2 REQUIRED)
-target_link_libraries(HPL2 SDL2::SDL2)
+
+# Binreloc
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/binreloc)
+
+# OALWrapper
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/OALWrapper)
 
 target_link_libraries(HPL2
-    OALWrapper # also pulls in ogg,vorbis,SDL
-    Newton
-    angelscript
+    OALWrapper
+    OpenGL::GL
+    OpenGL::GLU 
+    GLEW::GLEW
+    Theora::Theora
+    DevIL::IL
+    ZLIB::ZLIB
+    LibXml2::LibXml2
+    SDL2::SDL2
+    Threads::Threads
+    Newton::Newton
+    AngelScript::AngelScript
     binreloc
-    FBX
+    FBX::FBX
+    iconv
     ${CMAKE_DL_LIBS}
 )
+
+target_include_directories(HPL2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 FUNCTION(AddTestTarget target_name)
     add_executable(${target_name} EXCLUDE_FROM_ALL
