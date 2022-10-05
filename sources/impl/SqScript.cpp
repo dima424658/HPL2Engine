@@ -23,7 +23,7 @@
 #include "system/Platform.h"
 #include "math/Math.h"
 #include <stdio.h>
-#include "impl/scripthelper.h"
+#include "impl/angelscript/scripthelper.h"
 #include "resources/BinaryBuffer.h"
 #include "resources/Resources.h"
 

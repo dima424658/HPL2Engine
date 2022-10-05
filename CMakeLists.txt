@@ -59,10 +59,10 @@ file(GLOB impl_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     sources/impl/XmlDocumentTiny.cpp
     # scripting
     sources/impl/SqScript.cpp
-    sources/impl/scriptarray.cpp
-    sources/impl/scripthelper.cpp
-    sources/impl/scriptstdstring.cpp
-    sources/impl/scriptstdstring_utils.cpp
+    sources/impl/angelscript/scriptarray.cpp
+    sources/impl/angelscript/scripthelper.cpp
+    sources/impl/angelscript/scriptstdstring.cpp
+    sources/impl/angelscript/scriptstdstring_utils.cpp
     # Image loading
     sources/impl/BitmapLoader*
     # theora video

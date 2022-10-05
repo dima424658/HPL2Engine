@@ -47,8 +47,8 @@
 
 #include "SDL2/SDL.h"
 
-#include "impl/scriptstdstring.h"
-#include "impl/scriptarray.h"
+#include "impl/angelscript/scriptstdstring.h"
+#include "impl/angelscript/scriptarray.h"
 
 #include "system/String.h"
 
