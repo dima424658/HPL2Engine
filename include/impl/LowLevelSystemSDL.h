@@ -23,6 +23,7 @@
 #include "system/LowLevelSystem.h"
 #include <angelscript.h>
 #include <stdio.h>
+#include "impl/angelscript/aswrappedcall.h"
 
 namespace hpl {
 
@@ -74,6 +75,19 @@ namespace hpl {
 		~cLowLevelSystemSDL();
 
 		iScript* CreateScript(const tString& asName);
+
+		bool AddScriptFunc(const tString& asFuncDecl, const asSFuncPtr& apFunc)
+		{
+			int r = mpScriptEngine->RegisterGlobalFunction(asFuncDecl.c_str(), apFunc, asCALL_GENERIC);
+
+			if(r < 0)
+			{
+				Error("Couldn't add func '%s'\n",asFuncDecl.c_str());
+				return false;
+			}
+
+			return true;
+		}
 
 		bool AddScriptFunc(const tString& asFuncDecl, void* pFunc);
 		bool AddScriptVar(const tString& asVarDecl, void *pVar);

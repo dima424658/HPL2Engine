@@ -333,7 +333,7 @@ namespace hpl {
 
 				cCollidePoint collidePoint;
 				collidePoint.mfDepth = 1;
-				NewtonMaterialGetContactPositionAndNormal (pMaterial, pBody1, collidePoint.mvPoint.v, collidePoint.mvNormal.v);
+				NewtonMaterialGetContactPositionAndNormal (pMaterial, pBody0, collidePoint.mvPoint.v, collidePoint.mvNormal.v);
 
 				pContactBody1->GetWorld()->GetContactPoints()->push_back(collidePoint);
 

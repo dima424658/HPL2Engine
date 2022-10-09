@@ -160,7 +160,7 @@ namespace hpl {
 
 	//-----------------------------------------------------------------------
 
-	void CALLBACK OGLDebugOutputCallback(GLenum alSource, GLenum alType, GLuint alID, GLenum alSeverity, GLsizei alLength, const GLchar* apMessage, GLvoid* apUserParam)
+	void CALLBACK OGLDebugOutputCallback(GLenum alSource, GLenum alType, GLuint alID, GLenum alSeverity, GLsizei alLength, const GLchar* apMessage, const GLvoid* apUserParam)
 	{
 		Log("Source: %d Type: %d Id: %d Severity: %d '%s'\n", alSource, alType, alID, alSeverity, apMessage);
 	}
@@ -210,7 +210,7 @@ namespace hpl {
 		}
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-        unsigned int mlFlags = SDL_WINDOW_OPENGL;
+        unsigned int mlFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
         if (alWidth == 0 && alHeight == 0) {
             mvScreenSize = cVector2l(800,600);
             mlFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
@@ -360,7 +360,7 @@ namespace hpl {
 		mbInitHasBeenRun = true;
 
 
-		/*if(GLEW_ARB_debug_output)
+		if(GLEW_ARB_debug_output)
 		{
 			glDebugMessageCallbackARB(&OGLDebugOutputCallback, NULL);
 			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
@@ -368,7 +368,7 @@ namespace hpl {
 		else
 		{	
 			Warning("OGL debug output not supported!\n");
-		}*/
+		}
 
 
 		return true;
