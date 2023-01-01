@@ -40,7 +40,7 @@ namespace hpl {
 
 	//----------------------------------------
 
-#if (defined(__ppc__) || defined(__PPC__)) && !defined(__LP64__)
+#if (defined(__ppc__) || defined(__PPC__) || defined(__aarch64__)) && !defined(__LP64__)
 	// PPC here
 	#define MAP_CACHE_FORMAT_MAGIC_NUMBER		0xF4414550
 #else

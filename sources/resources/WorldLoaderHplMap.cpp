@@ -436,7 +436,7 @@ namespace hpl {
 
 	void cWorldLoaderHplMap::LoadCacheFile(const tWString& asFile)
 	{
-#if (defined(__PPC__) || defined(__ppc__))
+#if (defined(__PPC__) || defined(__ppc__) || defined(__aarch64__))
 		return;
 #endif
 		tWString sCacheFile = cString::SetFileExtW(asFile, msCacheFileExt);
@@ -696,7 +696,7 @@ namespace hpl {
 
 	void cWorldLoaderHplMap::SaveCacheFile(const tWString& asFile)
 	{
-#if (defined(__PPC__) || defined(__ppc__))
+#if (defined(__PPC__) || defined(__ppc__) || defined(__aarch64__))
 		return;
 #endif
 		if(mbLoadedCache) return; //No need to save if cache was loaded!
