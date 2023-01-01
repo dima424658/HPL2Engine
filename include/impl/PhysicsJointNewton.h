@@ -116,7 +116,7 @@ namespace hpl {
 		void CreateCustomJoint(int alMaxDOF)
 		{
 			mlMaxDOF = alMaxDOF;
-			mpNewtonJoint = NewtonConstraintCreateUserJoint (mpNewtonWorld, mlMaxDOF, StaticSubmitConstraints, StaticGetInfo, mpNewtonChildBody, mpNewtonParentBody); 
+			mpNewtonJoint = NewtonConstraintCreateUserJoint (mpNewtonWorld, mlMaxDOF, StaticSubmitConstraints, mpNewtonChildBody, mpNewtonParentBody); 
 
 			NewtonJointSetUserData (mpNewtonJoint, this);
 		}
@@ -156,13 +156,6 @@ namespace hpl {
 			iPhysicsJointNewton<T> *pJointData = (iPhysicsJointNewton<T>*)NewtonJointGetUserData(apJoint);
 
 			pJointData->SubmitConstraints(afTimestep, alThreadIndex);
-		}
-		
-		static void StaticGetInfo (const NewtonJoint* apJoint, NewtonJointRecord* apInfo)
-		{
-			iPhysicsJointNewton<T> *pJointData = (iPhysicsJointNewton<T>*)NewtonJointGetUserData(apJoint);
-
-            pJointData->GetInfo(apInfo);
 		}
 
 		//-------------------------------------------

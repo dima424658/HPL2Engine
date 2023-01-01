@@ -58,11 +58,25 @@ find_library (Newton_LIBRARY
     ${Newton_ROOT}
   )
 
+find_library (dgCore_LIBRARY
+  NAMES
+    dgCore
+  HINTS
+    ${Newton_ROOT}
+  )
+
+find_library (dgPhysics_LIBRARY
+  NAMES
+    dgPhysics
+  HINTS
+    ${Newton_ROOT}
+  )
+
 include (FindPackageHandleStandardArgs)
 find_package_handle_standard_args (Newton REQUIRED_VARS Newton_LIBRARY Newton_INCLUDE_DIR)
 
 if (Newton_FOUND)
-  set (Newton_LIBRARIES "${Newton_LIBRARY}")
+  set (Newton_LIBRARIES "${Newton_LIBRARY} ${dgCore_LIBRARY} ${dgPhysics_LIBRARY}")
   set (Newton_INCLUDE_DIRS "${Newton_INCLUDE_DIR}")
   if (NOT TARGET Newton::Newton)
     add_library (Newton::Newton UNKNOWN IMPORTED)

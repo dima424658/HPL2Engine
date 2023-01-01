@@ -102,6 +102,11 @@ file(GLOB impl_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 if(APPLE)
+	add_definitions(-D_MACOSX_VER) # Newton 3
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fms-extensions")
+endif(APPLE)
+
+if(APPLE)
     list(APPEND apple_sources sources/impl/PlatformMacOSX.mm)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Foundation -framework AppKit")
     list(APPEND impl_sources ${apple_sources})

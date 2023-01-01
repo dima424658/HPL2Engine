@@ -78,6 +78,8 @@ namespace hpl {
 		mpTempDepths = hplNewArray( float,500);
 		mpTempNormals = hplNewArray( float,500 * 3);
 		mpTempPoints = hplNewArray( float,500 * 3);
+		mpTempAttributesA = hplNewArray( long long,500);
+		mpTempAttributesB = hplNewArray( long long,500);
 	}
 
 	//-----------------------------------------------------------------------
@@ -90,6 +92,8 @@ namespace hpl {
 		hplDeleteArray(mpTempDepths);
 		hplDeleteArray(mpTempNormals);
 		hplDeleteArray(mpTempPoints);
+		hplDeleteArray(mpTempAttributesA);
+		hplDeleteArray(mpTempAttributesB);
 	}
 
 	//-----------------------------------------------------------------------
@@ -144,7 +148,7 @@ namespace hpl {
 		mvWorldSizeMin = avMin;
 		mvWorldSizeMax = avMax;
 
-		NewtonSetWorldSize(mpNewtonWorld,avMin.v, avMax.v);
+		//NewtonSetWorldSize(mpNewtonWorld,avMin.v, avMax.v);
 	}
 
 	cVector3f cPhysicsWorldNewton::GetWorldSizeMin()
@@ -181,16 +185,16 @@ namespace hpl {
 		switch(mAccuracy)
 		{
 		case ePhysicsAccuracy_Low:
-									NewtonSetSolverModel(mpNewtonWorld,1);
-									NewtonSetFrictionModel(mpNewtonWorld,1);
+									NewtonSetSolverIterations(mpNewtonWorld,1);
+									//NewtonSetFrictionModel(mpNewtonWorld,1);
 									break;
 		case ePhysicsAccuracy_Medium:
-									NewtonSetSolverModel(mpNewtonWorld,2);
-									NewtonSetFrictionModel(mpNewtonWorld,1);
+									NewtonSetSolverIterations(mpNewtonWorld,4);
+									//NewtonSetFrictionModel(mpNewtonWorld,1);
 									break;
 		case ePhysicsAccuracy_High:
-									NewtonSetSolverModel(mpNewtonWorld,0);
-									NewtonSetFrictionModel(mpNewtonWorld,0);
+									NewtonSetSolverIterations(mpNewtonWorld,8);
+									//NewtonSetFrictionModel(mpNewtonWorld,0);
 									break;
 		}
 	}
@@ -388,10 +392,12 @@ namespace hpl {
 	//-----------------------------------------------------------------------
 
 	static std::vector<iPhysicsBody*> *gpBodyVec;
-	static void AddNewtonBodyToVector(const NewtonBody* apNewtonBody, void* userData)
+	static int AddNewtonBodyToVector(const NewtonBody* apNewtonBody, void* userData)
 	{
 		cPhysicsBodyNewton* pBody = (cPhysicsBodyNewton*) NewtonBodyGetUserData(apNewtonBody);
 		gpBodyVec->push_back(pBody);
+
+		return 1;
 	}
 
 	void cPhysicsWorldNewton::GetBodiesInBV(cBoundingVolume *apBV, std::vector<iPhysicsBody*> *apBodyVec)
@@ -484,8 +490,9 @@ namespace hpl {
 		else return 0;
 	}
 
-	static float RayCastFilterFunc (const NewtonBody* apNewtonBody, const float* apNormalVec, 
-								int alCollisionID, void* apUserData, float afIntersetParam)
+	static float RayCastFilterFunc (const NewtonBody* apNewtonBody, const NewtonCollision* const apShapeHit,
+								const float* const apHitContact, const float* apNormalVec, 
+								long long alCollisionID, void* apUserData, float afIntersetParam)
 	{
 		cPhysicsBodyNewton* pRigidBody = (cPhysicsBodyNewton*) NewtonBodyGetUserData(apNewtonBody);
 		if(pRigidBody->IsActive()==false) return 1;
@@ -550,9 +557,9 @@ namespace hpl {
 
 		
 		if(abUsePrefilter)
-			NewtonWorldRayCast(mpNewtonWorld, avOrigin.v, avEnd.v,RayCastFilterFunc, NULL, RayCastPrefilterFunc);
+			NewtonWorldRayCast(mpNewtonWorld, avOrigin.v, avEnd.v,RayCastFilterFunc, NULL, RayCastPrefilterFunc, 0);
 		else
-			NewtonWorldRayCast(mpNewtonWorld, avOrigin.v, avEnd.v,RayCastFilterFunc, NULL, NULL);
+			NewtonWorldRayCast(mpNewtonWorld, avOrigin.v, avEnd.v,RayCastFilterFunc, NULL, NULL, 0);
 	}
 	
 	//-----------------------------------------------------------------------
@@ -603,7 +610,7 @@ namespace hpl {
 					int lNum = NewtonCollisionCollide(mpNewtonWorld, alMaxPoints,
 												pSubShapeA->GetNewtonCollision(), &(mtxTransposeA.m[0][0]),
 												pSubShapeB->GetNewtonCollision(), &(mtxTransposeB.m[0][0]),
-												mpTempPoints, mpTempNormals, mpTempDepths, 0);
+												mpTempPoints, mpTempNormals, mpTempDepths, mpTempAttributesA, mpTempAttributesB, 0);
 					if(lNum<1) continue;
 					if(lNum > alMaxPoints )lNum = alMaxPoints;
 
@@ -653,7 +660,7 @@ namespace hpl {
 			int lNum = NewtonCollisionCollide(mpNewtonWorld, alMaxPoints,
 										pNewtonShapeA->GetNewtonCollision(), &(mtxTransposeA.m[0][0]),
 										pNewtonShapeB->GetNewtonCollision(), &(mtxTransposeB.m[0][0]),
-										mpTempPoints, mpTempNormals, mpTempDepths, 0);
+										mpTempPoints, mpTempNormals, mpTempDepths, mpTempAttributesA, mpTempAttributesB, 0);
 			
 			if(lNum<1) return false;
 			if(lNum > alMaxPoints )lNum = alMaxPoints;

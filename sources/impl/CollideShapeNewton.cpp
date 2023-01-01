@@ -68,16 +68,15 @@ namespace hpl {
 												0, pMtx); break;
 		
 		case eCollideShapeType_Sphere:		mpNewtonCollision = NewtonCreateSphere(apNewtonWorld,
-												//mvSize.x, mvSize.y, mvSize.z, if not all values are equal then this does not work
-												mvSize.x, mvSize.x,mvSize.x,	//so this is better!
+												mvSize.x,
 												0, pMtx); break;
 
 		case eCollideShapeType_Cylinder:	mpNewtonCollision = NewtonCreateCylinder(apNewtonWorld,
-												mvSize.x, mvSize.y, 
+												mvSize.x, mvSize.x, mvSize.y, // TODO: mvSize.z
 												0, pMtx); break;
 		
 		case eCollideShapeType_Capsule:		mpNewtonCollision = NewtonCreateCapsule(apNewtonWorld,
-												mvSize.x, mvSize.y, 
+												mvSize.x, mvSize.x, mvSize.y, // TODO: mvSize.z
 												0, pMtx); break;
 		}
 		
@@ -127,7 +126,7 @@ namespace hpl {
 	{
 		//Release Newton Collision
 		if(mpNewtonCollision)
-			NewtonReleaseCollision(mpNewtonWorld,mpNewtonCollision);
+			NewtonDestroyCollision(mpNewtonCollision);
 		
 		//Release all subshapes (for compound objects)
 		for(int i=0; i < (int)mvSubShapes.size(); i++)
@@ -233,7 +232,7 @@ namespace hpl {
 			cCollideShapeNewton *pNewtonShape = static_cast<cCollideShapeNewton*>(avShapes[i]);
 
 			auto mtxTransform = cMatrixf::Identity.GetTranspose();
-			NewtonSceneProxy* pProxy = NewtonSceneCollisionCreateProxy(mpNewtonCollision, pNewtonShape->GetNewtonCollision(), &mtxTransform.m[0][0]);
+			//NewtonSceneProxy* pProxy = NewtonSceneCollisionCreateProxy(mpNewtonCollision, pNewtonShape->GetNewtonCollision(), &mtxTransform.m[0][0]);
 			if(apMatrices)
 			{
 				//TODO!
@@ -241,7 +240,7 @@ namespace hpl {
 			
 		}
 		
-		NewtonSceneCollisionOptimize(mpNewtonCollision);
+		//NewtonSceneCollisionOptimize(mpNewtonCollision);
 	}
 
 
@@ -267,8 +266,12 @@ namespace hpl {
 			mfVolume += pNewtonShape->GetVolume();
 		}
 
-		mpNewtonCollision = NewtonCreateCompoundCollision(mpNewtonWorld, (int)vNewtonColliders.size(),
-															&vNewtonColliders[0], 0);
+		mpNewtonCollision = NewtonCreateCompoundCollision(mpNewtonWorld, 0);
+
+		NewtonCompoundCollisionBeginAddRemove(mpNewtonCollision);
+		for(auto c : vNewtonColliders)
+			NewtonCompoundCollisionAddSubCollision(mpNewtonCollision, c);
+		NewtonCompoundCollisionEndAddRemove(mpNewtonCollision);
 
 		// Create bounding volume
 		cVector3f vFinalMax = avShapes[0]->GetBoundingVolume().GetMax();

@@ -111,6 +111,8 @@ namespace hpl {
 		float* mpTempPoints;
 		float* mpTempNormals;
 		float* mpTempDepths;
+		long long* mpTempAttributesA;
+		long long* mpTempAttributesB;
 
 		cVector3f mvWorldSizeMin;
 		cVector3f mvWorldSizeMax;

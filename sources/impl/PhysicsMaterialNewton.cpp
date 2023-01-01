@@ -181,11 +181,8 @@ namespace hpl {
 				Combine(frictionMode,mfStaticFriction, pMat->mfStaticFriction),
 				Combine(frictionMode,mfKineticFriction, pMat->mfKineticFriction));
 
-			NewtonMaterialSetContinuousCollisionMode(mpNewtonWorld,mlMaterialId,pMat->mlMaterialId,
-													1);
-
 			NewtonMaterialSetCollisionCallback(mpNewtonWorld,mlMaterialId,pMat->mlMaterialId,
-												(void*)NULL,OnAABBOverlapCallback,ContactsProcessCallback);
+												OnAABBOverlapCallback,ContactsProcessCallback);
 		}
 	}
 
@@ -210,10 +207,10 @@ namespace hpl {
 
 	//-----------------------------------------------------------------------
 
-	cNewtonLockBodyUntilReturn::cNewtonLockBodyUntilReturn(const NewtonBody* apNewtonBody)
+	cNewtonLockBodyUntilReturn::cNewtonLockBodyUntilReturn(const NewtonBody* apNewtonBody, int alThreadIndex)
 	{
 		mpNewtonBody = apNewtonBody;
-		NewtonWorldCriticalSectionLock (NewtonBodyGetWorld (mpNewtonBody));
+		NewtonWorldCriticalSectionLock (NewtonBodyGetWorld (mpNewtonBody), alThreadIndex);
 	}
 	
 	//-----------------------------------------------------------------------
@@ -231,12 +228,14 @@ namespace hpl {
 	
 	//-----------------------------------------------------------------------
 
-	int cPhysicsMaterialNewton::OnAABBOverlapCallback(	const NewtonMaterial* apMaterial,
-														const NewtonBody* apBody1, const NewtonBody* apBody2,
+	int cPhysicsMaterialNewton::OnAABBOverlapCallback(	const NewtonJoint* const apContact, dFloat afTimestep,
 														int alThreadIndex)
 	{
-		cPhysicsBodyNewton* pContactBody1 = (cPhysicsBodyNewton*) NewtonBodyGetUserData(apBody1);
-		cPhysicsBodyNewton* pContactBody2 = (cPhysicsBodyNewton*) NewtonBodyGetUserData(apBody2);
+		NewtonBody* pBody1 = NewtonJointGetBody0(apContact);
+		NewtonBody* pBody2 = NewtonJointGetBody1(apContact);
+
+		cPhysicsBodyNewton* pContactBody1 = (cPhysicsBodyNewton*) NewtonBodyGetUserData(pBody1);
+		cPhysicsBodyNewton* pContactBody2 = (cPhysicsBodyNewton*) NewtonBodyGetUserData(pBody2);
 
 		if( (pContactBody1->GetCollideFlags() & pContactBody2->GetCollideFlags())==0 ) return 0;
 
@@ -259,8 +258,8 @@ namespace hpl {
 		//													mpContactBody2->GetName().c_str());
 
 		//Thread lock
-		cNewtonLockBodyUntilReturn criticalLock1(apBody1);
-		cNewtonLockBodyUntilReturn criticalLock2(apBody2);
+		cNewtonLockBodyUntilReturn criticalLock1(pBody1, alThreadIndex);
+		cNewtonLockBodyUntilReturn criticalLock2(pBody2, alThreadIndex);
 		
 		//Call the callbacks
 		if(pContactBody1->OnAABBCollision(pContactBody2)==false) return 0;
@@ -329,7 +328,7 @@ namespace hpl {
 			if(pContactBody1->GetWorld()->GetSaveContactPoints())
 			{
 				//Thread lock
-				NewtonWorldCriticalSectionLock (NewtonBodyGetWorld (pBody0));
+				NewtonWorldCriticalSectionLock (NewtonBodyGetWorld (pBody0), alThreadIndex);
 
 				cCollidePoint collidePoint;
 				collidePoint.mfDepth = 1;
@@ -353,8 +352,8 @@ namespace hpl {
 		contactData.mvContactPosition = contactData.mvContactPosition / (float)lContactNum;
 
 		//Thread lock
-		NewtonWorldCriticalSectionLock (NewtonBodyGetWorld (pBody0));
-		NewtonWorldCriticalSectionLock (NewtonBodyGetWorld (pBody1));
+		NewtonWorldCriticalSectionLock (NewtonBodyGetWorld (pBody0), alThreadIndex);
+		NewtonWorldCriticalSectionLock (NewtonBodyGetWorld (pBody1), alThreadIndex);
 
 		////////////////////////////
 		//Surface data stuff

@@ -46,7 +46,7 @@ namespace hpl {
 		mpNewtonWorld = pWorldNewton->GetNewtonWorld();
 
 		auto transpose = GetLocalMatrix().GetTranspose();
-		mpNewtonBody = NewtonCreateBody(pWorldNewton->GetNewtonWorld(), 
+		mpNewtonBody = NewtonCreateDynamicBody(pWorldNewton->GetNewtonWorld(), 
 										pShapeNewton->GetNewtonCollision(), &transpose.m[0][0]);
 
 		mpCallback = hplNew( cPhysicsBodyNewtonCallback, () );
@@ -90,7 +90,7 @@ namespace hpl {
 	void cPhysicsBodyNewton::DeleteLowLevel()
 	{
 		//Log(" Newton body %d\n", (size_t)mpNewtonBody);
-		NewtonDestroyBody(mpNewtonWorld,mpNewtonBody);
+		NewtonDestroyBody(mpNewtonBody);
 		//Log(" Callback\n");
 		hplDelete(mpCallback);
 	}
@@ -215,7 +215,7 @@ namespace hpl {
 	{
 		float fIxx, fIyy, fIzz, fMass;
 
-		NewtonBodyGetMassMatrix(mpNewtonBody,&fMass, &fIxx, &fIyy, &fIzz);
+		NewtonBodyGetMass(mpNewtonBody,&fMass, &fIxx, &fIyy, &fIzz);
 		
 		return cVector3f(fIxx, fIyy, fIzz);
 	}
@@ -226,7 +226,7 @@ namespace hpl {
 	{
 		float fIxx, fIyy, fIzz, fMass;
 
-		NewtonBodyGetMassMatrix(mpNewtonBody,&fMass, &fIxx, &fIyy, &fIzz);
+		NewtonBodyGetMass(mpNewtonBody,&fMass, &fIxx, &fIyy, &fIzz);
 
         cMatrixf mtxRot = GetLocalMatrix().GetRotation();
 		cMatrixf mtxTransRot = mtxRot.GetTranspose();
@@ -322,16 +322,16 @@ namespace hpl {
 														vMassCentre);
 
 			cVector3f vWorldPosition = GetWorldPosition() + vCentreOffset;
-			NewtonBodyAddImpulse(mpNewtonBody, avImpulse.v, vWorldPosition.v);
+			NewtonBodyAddImpulse(mpNewtonBody, avImpulse.v, vWorldPosition.v, mpWorld->GetMaxTimeStep());
 		}
 		else
 		{
-			NewtonBodyAddImpulse(mpNewtonBody, avImpulse.v, GetWorldPosition().v);
+			NewtonBodyAddImpulse(mpNewtonBody, avImpulse.v, GetWorldPosition().v, mpWorld->GetMaxTimeStep());
 		}
 	}
 	void cPhysicsBodyNewton::AddImpulseAtPosition(const cVector3f &avImpulse, const cVector3f &avPos)
 	{
-		NewtonBodyAddImpulse(mpNewtonBody, avImpulse.v, avPos.v);
+		NewtonBodyAddImpulse(mpNewtonBody, avImpulse.v, avPos.v, mpWorld->GetMaxTimeStep());
 	}
 	
 	//-----------------------------------------------------------------------
@@ -459,20 +459,6 @@ namespace hpl {
 	}
 
 	//-----------------------------------------------------------------------
-	
-	//callback for buoyancy
-	static cPlanef gSurfacePlane;
-	static int BuoyancyPlaneCallback (const int alCollisionID, void *apContext, 
-									const float* afGlobalSpaceMatrix, float* afGlobalSpacePlane)
-	{
-		afGlobalSpacePlane[0] = gSurfacePlane.a;
-		afGlobalSpacePlane[1] = gSurfacePlane.b;
-		afGlobalSpacePlane[2] = gSurfacePlane.c;
-		afGlobalSpacePlane[3] = gSurfacePlane.d;
-		return 1;   
-	} 
-
-	//-----------------------------------------------------------------------
 
 	void cPhysicsBodyNewton::OnUpdateCallback(const NewtonBody* apBody, dFloat afTimestep, int alThreadIndex)
 	{
@@ -512,14 +498,41 @@ namespace hpl {
 		{
 			cVector3f vGravity = pRigidBody->mpWorld->GetGravity();
 
-			gSurfacePlane = pRigidBody->mBuoyancy.mSurface;
-			
-			NewtonBodyAddBuoyancyForce( apBody, 
-										pRigidBody->mBuoyancy.mfDensity * pRigidBody->mfBuoyancyDensityMul,
-										pRigidBody->mBuoyancy.mfLinearViscosity,
-										pRigidBody->mBuoyancy.mfAngularViscosity,
-										vGravity.v, BuoyancyPlaneCallback,
-										pRigidBody);
+			cPlanef surfacePlane = pRigidBody->mBuoyancy.mSurface;
+
+			cMatrixf matrix;
+			NewtonBodyGetMatrix(apBody, matrix.v);
+			NewtonCollision* collision = NewtonBodyGetCollision(apBody);
+			cVector3f centerOfBuoyancy;
+			dFloat volume = NewtonConvexCollisionCalculateBuoyancyVolume(collision, matrix.v, &surfacePlane.a, centerOfBuoyancy.v);
+			if (volume > 0.0f)
+			{
+				// if some part of the shape is under water, calculate the buoyancy force base on
+				// Archimedes's buoyancy principle, which is the buoyancy force is equal to the
+				// weight of the fluid displaced by the volume under water.
+				cVector3f cog(0.0f);
+
+				dFloat displacedMass = pRigidBody->mBuoyancy.mfDensity * volume;
+				NewtonBodyGetCentreOfMass(apBody, cog.v);
+				centerOfBuoyancy -= cMath::MatrixMul(matrix, cog);
+
+				// now with the mass and center of mass of the volume under water, calculate buoyancy force and torque
+				cVector3f force(dFloat(0.0f), dFloat(-9.8 * displacedMass), dFloat(0.0f));
+				cVector3f torque(cMath::Vector3Cross(centerOfBuoyancy, force));
+
+				NewtonBodyAddForce(apBody, force.v);
+				NewtonBodyAddTorque(apBody, torque.v);
+
+				// apply a fake viscous drag to damp the under water motion
+				cVector3f omega(0.0f);
+				cVector3f veloc(0.0f);
+				NewtonBodyGetOmega(apBody, omega.v);
+				NewtonBodyGetVelocity(apBody, veloc.v);
+				omega = omega * pRigidBody->mBuoyancy.mfAngularViscosity;
+				veloc = veloc * pRigidBody->mBuoyancy.mfLinearViscosity;
+				NewtonBodySetOmega(apBody, omega.v);
+				NewtonBodySetVelocity(apBody, veloc.v);
+			}
 		}
 
 		////////////////////////////
