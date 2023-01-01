@@ -28,10 +28,7 @@ namespace hpl {
 
 	class cLightPoint : public iLight
 	{
-	#ifdef __GNUC__
-		typedef iLight __super;
-	#endif
-	public:
+		public:
 		cLightPoint(tString asName, cResources *apResources);
 
 	private:

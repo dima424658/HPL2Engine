@@ -46,9 +46,6 @@ namespace hpl {
 
 	class iRenderable : public iEntity3D
 	{
-	#ifdef __GNUC__
-		typedef iEntity3D __super;
-	#endif
 	public:
 		iRenderable(const tString &asName);
 		virtual ~iRenderable() {}
